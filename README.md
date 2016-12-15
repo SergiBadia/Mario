@@ -1,1 +1,1 @@
-# Mario
+Sergi Badia / Isabel Lieto
