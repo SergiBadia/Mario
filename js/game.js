@@ -7,7 +7,7 @@ function preload() {
     game.load.image('tiles', 'Imagenes/super_mario.png');
 	game.load.image('corazon', 'Imagenes/corazon.png');
     game.load.spritesheet('mario', 'Imagenes/mario2.png', 30, 33);
-    game.load.spritesheet('fish', 'Imagenes/fish.png', 31.25, 33.33);
+    game.load.spritesheet('fish', 'Imagenes/fish.png', 28.5, 23);
     game.load.spritesheet('gelfish', 'Imagenes/gelfish.png', 28.5, 25);
 	game.load.spritesheet('pajaru', 'Imagenes/pajaros.png', 97, 120);
     game.load.spritesheet('princesa', 'Imagenes/princesa.png', 24, 32);
@@ -20,20 +20,16 @@ function preload() {
 	game.load.spritesheet('misil', 'Imagenes/enemigos.png', 51.090, 58);
 	game.load.spritesheet('planta', 'Imagenes/enemigos2.png', 29.06, 27);
 	game.load.image('gameover', 'imagenes/gameover.png');
-	game.load.image('end', 'imagenes/final.png');
+	game.load.image('end', 'imagenes/victoria.png');
 	//Cargamos audios
 	game.load.audio('moneda','audio/Moneda.mp3');
 	game.load.audio('salto','audio/MW_Jump2.wav');
-	game.load.audio('musicafondo','audio/Mariofondo.wav');
+	game.load.audio('musicafondo','audio/Mariofondo.mp3');
 	game.load.audio('gameover','audio/gameover.mp3');
-	
+	game.load.audio('victoria','audio/victoria.mp3');
 	
 	//Cargamos texto
-	
 	game.load.bitmapFont('desyrel', 'Imagenes/desyrel.png', 'desyrel.xml'); 
-	
-
-	
 }
 
 var player; //Mario
@@ -44,12 +40,12 @@ var pos; //Posicion actual de Mario
 var sonidomoneda;
 var bmpText; //Texto
 var bmpText2;
-var vidas = 3;
+var vidas = 3; //Vidas de mario
 var setiña; //Enemigo seta
 var invencible = false; //Determina si Mario es invencible o no
-var locura = false;
+var locura = false; //Para el enemigo tortuga2
 var puntuacion = 0; //Puntuacion del nivel
-var segundos = 90; //Tiempo para el cronometro para superar el nivel
+var segundos = 100; //Tiempo para el cronometro para superar el nivel
 
 function create() {
 	
@@ -78,9 +74,7 @@ function create() {
     layer = map.createLayer('World1');
 	layer.resizeWorld();
 	layer.wrap = true;
-
-    //Al reescalar el mapa las colisiones fallan. Hay que preguntar al Marc.
-    //layer.scale.setTo(1.6, 2);
+	
 	
 	//Añadimos textos en pantalla
 	bmpText = game.add.bitmapText(10, 10, 'desyrel', 'Score : ' + puntuacion, 40);
@@ -95,8 +89,7 @@ function create() {
 	bmpText7 = game.add.bitmapText(540, 10, 'desyrel',''+game.time.events.duration, 30);
 	bmpText7.fixedToCamera = true;
 	
-	bmpText8 = game.add.bitmapText(3200, 10, 'desyrel','Made by:\nSergi & Isa', 30);
-	bmpText8.fixedToCamera = false;
+	
 	
 	//Audios
 	sonidomoneda = game.add.audio('moneda');
@@ -121,22 +114,23 @@ function create() {
 	
 		
     //Añadimos objetos
-    player = game.add.sprite(32, 150, 'mario');
+    player = game.add.sprite(20, 20, 'mario');
 	tortuga = game.add.sprite(60,150,'tortuga_roja');
 	tortuga2 = game.add.sprite(836,150,'tortuga');
 	
 	planta = game.add.sprite(2305,150,'planta',28);
 	planta.scale.setTo(1.5,1.5);
 	
-	
-	
-
-	
-	
 	princess = game.add.sprite(3260,0,'princesa');
 	
 	monedas = game.add.group();
+	monedas.enableBody = true;
+	
 	pajaros = game.add.group();
+	pajaros.enableBody = true;
+	
+	peces = game.add.group();
+	peces.enableBody = true;
 	
 	miniplantas = game.add.group();
 	miniplantas.enableBody = true;
@@ -148,13 +142,6 @@ function create() {
 	
 	setas = game.add.group();
 	setas.enableBody = true;
-	
-	
-	monedas.enableBody = true;
-	pajaros.enableBody = true;
-	
-	
-	
 	
 	//Creamos las monedas del nivel
 	for(var i=0;i<15;i++){
@@ -244,13 +231,16 @@ function create() {
     cursors = game.input.keyboard.createCursorKeys();
 	
 	//Funciones que se ejecutan cada cierto tiempo
+	
 	setInterval(movimientoseta, 2000);	//Llamamos a la funcion que controla el movimiento de las setas cada 2 segundos
 	setInterval(crearcohete, 3000); // Creamos un cohete cada 3 segundos
-	
-	setInterval(cambioanimacionplanta, aleatorio(1,3)*1000); //Cambiamos la animacion de la planta de abierta a cerrada o viceversa
-	setInterval(crearminiplanta, 750);
+	setInterval(cambioanimacionplanta, aleatorio(2,4)*1000); //Cambiamos la animacion de la planta de abierta a cerrada o viceversa
+	setInterval(crearminiplanta, 750); //Creamos miniplantas cada 750 ms
+	setInterval(crearpeces, 2500); //Creamos peces cada 2,5 s
 	
 	game.time.events.loop(Phaser.Timer.SECOND * 1, cronometro);  //Funcion para la cuenta atras
+	
+	
 	
 }
 
@@ -276,9 +266,6 @@ function update() {
 	
 	bmpText7.text = segundos;
 	
-	
-	
-	
 	//Configuramos que pasa cuando 2 objetos se sobreponen 
 	game.physics.arcade.overlap(player, tortuga, muertetortuga, null, this);
 	game.physics.arcade.overlap(player, monedas, collectMoney, null, this);
@@ -288,14 +275,15 @@ function update() {
 	game.physics.arcade.overlap(player, pajaros, muertepajaros, null, this);
 	game.physics.arcade.overlap(player, cohetes, muertecohete, null, this);
 	game.physics.arcade.overlap(player, miniplantas, muerteminiplantas, null, this);
+	game.physics.arcade.overlap(player, peces, muertepez, null, this);
 
-    player.body.velocity.x = 0;
+    player.body.velocity.x = 0; //Si no se toca ningun boton, Mario estará quieto
 	
 	pos = map.getTileWorldXY(player.x,player.y + 20); //Sprite actual sobre el que esta apoyado mario
-	caja = map.getTileWorldXY(player.x,player.y - 20); //Sprite encima de mario
-	monedas.callAll('play',null,'stand');
+	caja = map.getTileWorldXY(player.x,player.y - 20); //Sprite actual encima de mario
+	monedas.callAll('play',null,'stand'); //Ejecutamos animacion de las monedas
 	
-	bmpText.text = 'Score :' + puntuacion;
+	bmpText.text = 'Score :' + puntuacion; //Texto para la puntuacion
 	
 	//Colisión con las cajas sorpresa
 	if(caja.index==14){
@@ -324,13 +312,6 @@ function update() {
 		
 	}
 	
-	
-	
-	
-	
-	
-	
-	
 	//Caida al vacio
 	
 	if(game.height - player.y < 20){
@@ -339,13 +320,8 @@ function update() {
 		createPlayer();
 		restavida();
 		bmpText.text = 'Score :' + puntuacion;
-				
-		
 	}
 		
-	
-    
-
 	//Controles
     if(invencible == false){
 	
@@ -395,16 +371,8 @@ function update() {
 
 			player.frame = 4;
 		}
-		
-		
-		
-		
-		
-		
 	}
     
-	
-	
 	//Salto de Mario
 	
     if (cursors.up.isDown && (pos.index == 40 || pos.index == 14 || pos.index == 15 || pos.index == 16 ||
@@ -449,15 +417,16 @@ function update() {
 	//Eliminamos enemigos que salen fuera de pantalla
 	eliminarcohete();
 	eliminarminiplanta();
+	eliminarpez();
 	
 	//Ganas al llegar al final del nivel
 	
 	if(player.x > 3153) {
 		
+		player.kill();
 		Victoria();
 		
 	}
-	
 }
 
 	//Funcion para crear una seta nueva
@@ -586,6 +555,57 @@ function muertecohete(player,cohete){
 				
 		cohete.kill();
 		puntuacion++;
+	}
+		
+}
+
+//Crea los peces del nivel
+function crearpeces(){
+	
+		var pez = peces.create(2780, 250,'fish');
+		pez.body.gravity.y = 300;
+		pez.body.velocity.y = -350;
+		
+		var pez2 = peces.create(2810, 540,'fish');
+		pez2.body.gravity.y = 300;
+		pez2.body.velocity.y = -550;
+		
+		
+		
+		peces.callAll('animations.add','animations','salta',[0,1],10, true);
+		peces.callAll('play',null,'salta');
+			
+}
+
+//Elimina un pez
+function eliminarpez(){
+	
+	peces.forEach(function(item){
+		if(item.y > 550){
+			
+			item.kill();
+			
+		}
+	},this);
+	
+	
+}
+
+//Muerte por los peces
+function muertepez(player,peces){
+	
+	if(invencible == false){
+		
+		player.kill();
+		restavida();
+		puntuacion = 0;
+		
+		if(vidas != -1){
+			createPlayer();
+		}
+		}else{
+		
+		return;
 	}
 		
 }
@@ -846,7 +866,7 @@ function collectMoney(player,moneda){
 	
 }
 
-//Al coger una estrella te vuelves invencible durante 5 segundos
+//Al coger una estrella te vuelves invencible durante 10 segundos
 function collectEstrella(player,estrella){
 	
 	estrella.kill();
@@ -854,7 +874,7 @@ function collectEstrella(player,estrella){
 	bmpText5.fixedToCamera = true;
 	cambioinvencibilidad();
 	bmpText5.text = 'Invencible';
-	game.time.events.add(Phaser.Timer.SECOND * 5, cambioinvencibilidad, this);
+	game.time.events.add(Phaser.Timer.SECOND * 10, cambioinvencibilidad, this);
 		
 }
 
@@ -922,6 +942,9 @@ function cambioinvencibilidad(){
 		bmpText4 = game.add.bitmapText(300, 120, 'desyrel', 'Fin de Partida', 40);
 		bmpText4.fixedToCamera = true;
 		
+		bmpText8 = game.add.bitmapText(790,180, 'desyrel','Made by:\nSergi & Isa', 20);
+		bmpText8.fixedToCamera = true;
+		
 		
 	}
 	
@@ -932,14 +955,21 @@ function cambioinvencibilidad(){
 		game.world.removeAll();
 		musicaf.stop();
 		
-		background2 = game.add.tileSprite(0, 0, 3500, game.height, 'end');
-		//background2.autoScroll(-20, -20);
+		musicavictoria = game.add.audio('victoria');
+		musicavictoria.play();
+		
+		background = game.add.image(0,0,'end');
+		background.scale.setTo(1,0.30);
+		background.fixedToCamera = true;
 		
 		bmpText3 = game.add.bitmapText(300, 70, 'desyrel', 'Score : ' + puntuacion, 40);
 		bmpText3.fixedToCamera = true;
 	
 		bmpText4 = game.add.bitmapText(300, 120, 'desyrel', 'Lo has conseguido!!!', 40);
 		bmpText4.fixedToCamera = true;
+		
+		bmpText8 = game.add.bitmapText(790,180, 'desyrel','Made by:\nSergi & Isa', 20);
+		bmpText8.fixedToCamera = true;
 		
 		
 		
